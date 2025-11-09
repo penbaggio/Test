@@ -1,0 +1,21 @@
+# 回测基础配置
+initial_capital: 10000000    # 初始资金 1,000 万
+fee_rate_buy: 0.004          # 买入单边费率（双边千四=0.004）
+fee_rate_sell: 0.004         # 卖出单边费率
+min_trade_ratio: 0.005       # 微调阈值，目标偏差低于该占比则不交易
+price_mode: next_open        # 成交价模式：next_open / open / close / next_close
+calendar_market: HKEX        # 交易日历（占位）
+pool_csv: ../港股通因子选股股票池.csv  # 股票池路径
+benchmark: H50069.CSI        # 基准（港股通指数代码）
+lot_size: 1                  # 手数/最小交易单位
+use_tushare: true            # 是否使用 Tushare 数据源
+tushare_token: "98b2900883e70c8b1e141fdb33e4a5a1123dc999d217fcd2c0ce4c89"  # 建议使用环境变量
+tushare_retry: 3             # Tushare 重试次数
+tushare_sleep: 1.0           # 重试间隔秒
+fields_open: OPEN            # 开盘价字段（示例）
+fields_close: CLOSE          # 收盘价字段（示例）
+adjust_mode: NONE            # 复权模式：NONE/ADJ （示例）
+log_level: INFO              # 日志等级
+log_dir: output/logs         # 日志目录
+benchmark_code: H50069.CSI   # 指数代码（可用于 Tushare index_daily 拉取）
+benchmark_initial: 1.0       # 基准初始净值
