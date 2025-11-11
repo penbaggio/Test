@@ -1,4 +1,0 @@
-dash
-feffery-antd-components
-pandas
-plotly
