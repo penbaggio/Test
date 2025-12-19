@@ -5,6 +5,7 @@
 负责因子的IC分析、RankIC分析、分组回测等
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple, Union
@@ -12,6 +13,11 @@ from scipy import stats
 from scipy.stats import spearmanr, pearsonr
 
 from .config import FACTOR_CONFIGS, get_factor_directions, RANKICIR_CONFIG
+
+logger = logging.getLogger(__name__)
+
+# Constants for magic numbers
+MIN_SAMPLES_FOR_IC = 10  # Minimum samples required for IC calculation
 
 
 class FactorAnalyzer:
@@ -49,7 +55,7 @@ class FactorAnalyzer:
         # 对齐数据
         valid_mask = factor_values.notna() & returns.notna()
         
-        if valid_mask.sum() < 10:
+        if valid_mask.sum() < MIN_SAMPLES_FOR_IC:
             return np.nan, np.nan
         
         f = factor_values[valid_mask]
@@ -360,19 +366,19 @@ class FactorAnalyzer:
             directions = self.factor_directions
         
         # 1. 计算所有因子的IC时间序列
-        print("计算RankIC时间序列...")
+        logger.info("计算RankIC时间序列...")
         ic_df = self.calc_all_factors_ic(df, factor_cols, return_col, date_col)
         
         # 2. 计算滚动ICIR
-        print("计算滚动RankICIR...")
+        logger.info("计算滚动RankICIR...")
         icir_df = self.calc_all_factors_icir(ic_df, rolling_window, min_periods)
         
         # 3. 计算时变权重
-        print("计算因子权重...")
+        logger.info("计算因子权重...")
         weights_df = self.calc_time_varying_weights(icir_df, directions)
         
         # 4. 计算复合因子
-        print("计算复合因子...")
+        logger.info("计算复合因子...")
         result = df.copy()
         dates = sorted(df[date_col].unique())
         
@@ -565,7 +571,7 @@ class FactorAnalyzer:
         
         for date, group in df.groupby(date_col):
             factor_data = group[factor_cols].dropna()
-            if len(factor_data) < 10:
+            if len(factor_data) < MIN_SAMPLES_FOR_IC:
                 continue
             
             if method == 'spearman':

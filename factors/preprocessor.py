@@ -5,12 +5,18 @@
 负责因子数据的标准化、去极值、缺失值处理等
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Union
 from scipy import stats
 
 from .config import FACTOR_CONFIGS, get_factor_directions
+
+logger = logging.getLogger(__name__)
+
+# Constants for magic numbers
+MIN_SAMPLES_FOR_NEUTRALIZE = 10  # Minimum samples required for neutralization
 
 
 class FactorPreprocessor:
@@ -400,7 +406,7 @@ class FactorPreprocessor:
             if col in df.columns:
                 valid_mask &= df[col].notna()
         
-        if valid_mask.sum() < 10:
+        if valid_mask.sum() < MIN_SAMPLES_FOR_NEUTRALIZE:
             return df[factor_col]
         
         y = df.loc[valid_mask, factor_col].values
@@ -417,7 +423,8 @@ class FactorPreprocessor:
             result = df[factor_col].copy()
             result.loc[valid_mask] = residuals
             return result
-        except:
+        except Exception as e:
+            logger.debug(f"Error neutralizing factor {factor_col}: {e}")
             return df[factor_col]
     
     # ========================================================================

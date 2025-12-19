@@ -5,6 +5,7 @@
 负责计算需要从Tushare数据计算的因子
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
@@ -16,6 +17,13 @@ from .config import (
     CALCULATED_FACTORS,
 )
 from .loader import DataLoader
+
+logger = logging.getLogger(__name__)
+
+# Constants for magic numbers
+MIN_VOLATILITY_DAYS = 20  # Minimum trading days required for volatility calculation
+MIN_MOMENTUM_DAYS = 50    # Minimum trading days required for momentum calculation
+MIN_TRADING_DAYS = 20     # Minimum trading days required for calculations
 
 
 class FactorCalculator:
@@ -180,6 +188,7 @@ class FactorCalculator:
             return bm_ratio
             
         except Exception as e:
+            logger.debug(f"Error calculating PB ratio for {ts_code}: {e}")
             return None
     
     # ========================================================================
@@ -237,6 +246,7 @@ class FactorCalculator:
             return cf_value / total_assets
             
         except Exception as e:
+            logger.debug(f"Error calculating cashflow ratio for {ts_code}: {e}")
             return None
     
     # ========================================================================
@@ -304,6 +314,7 @@ class FactorCalculator:
             return curr_roe - prev_roe
             
         except Exception as e:
+            logger.debug(f"Error calculating ROE YoY for {ts_code}: {e}")
             return None
     
     # ========================================================================
@@ -378,7 +389,7 @@ class FactorCalculator:
             df = daily_df[(daily_df['trade_date'] >= start_date) & 
                           (daily_df['trade_date'] <= trade_date_fmt)].copy()
             
-            if len(df) < 20:  # 至少需要20个交易日
+            if len(df) < MIN_VOLATILITY_DAYS:  # 至少需要20个交易日
                 return None
             
             df = df.sort_values('trade_date')
@@ -389,13 +400,13 @@ class FactorCalculator:
             # 计算标准差（去除第一个NaN值）
             returns = df['ret'].dropna()
             
-            if len(returns) < 20:
+            if len(returns) < MIN_VOLATILITY_DAYS:
                 return None
             
             return returns.std()
             
         except Exception as e:
-            return None
+            logger.debug(f"Error calculating volatility for {ts_code}: {e}")
             return None
     
     # ========================================================================
@@ -516,6 +527,7 @@ class FactorCalculator:
             return stock_gap - index_gap
             
         except Exception as e:
+            logger.debug(f"Error calculating earnings gap for {ts_code}: {e}")
             return None
     
     def _get_limit_up_threshold(self, ts_code: str, name: str = '') -> float:
@@ -594,7 +606,7 @@ class FactorCalculator:
             df = daily_df[(daily_df['trade_date'] >= start_date) & 
                           (daily_df['trade_date'] <= end_date)].copy()
             
-            if len(df) < 50:  # 至少需要50个交易日
+            if len(df) < MIN_MOMENTUM_DAYS:  # 至少需要50个交易日
                 return None
             
             df = df.sort_values('trade_date')
@@ -608,12 +620,12 @@ class FactorCalculator:
             # 剔除涨停日
             df_no_limit = df[~df['is_limit_up']]
             
-            if len(df_no_limit) < 20:
+            if len(df_no_limit) < MIN_TRADING_DAYS:
                 return None
             
             # 检查pct_chg是否有效
             valid_pct = df_no_limit['pct_chg'].dropna()
-            if len(valid_pct) < 20:
+            if len(valid_pct) < MIN_TRADING_DAYS:
                 return None
             
             # 计算累计收益率
@@ -622,6 +634,7 @@ class FactorCalculator:
             return cum_ret
             
         except Exception as e:
+            logger.debug(f"Error calculating momentum ex limit for {ts_code}: {e}")
             return None
     
     # ========================================================================
@@ -668,13 +681,13 @@ class FactorCalculator:
             if not config.is_calculated:
                 continue
             
-            print(f"\nCalculating factor: {factor_name}")
+            logger.info(f"\nCalculating factor: {factor_name}")
             
             factor_values = []
             
             for i, row in result.iterrows():
                 if show_progress and (i + 1) % 100 == 0:
-                    print(f"  Progress: {i + 1}/{total}")
+                    logger.info(f"  Progress: {i + 1}/{total}")
                 
                 ts_code = row['ts_code']
                 trade_date = row['trade_date']
@@ -713,7 +726,7 @@ class FactorCalculator:
             # 统计覆盖率
             valid_count = sum(1 for v in factor_values if v is not None)
             coverage = valid_count / total * 100
-            print(f"  Coverage: {valid_count}/{total} ({coverage:.1f}%)")
+            logger.info(f"  Coverage: {valid_count}/{total} ({coverage:.1f}%)")
         
         return result
     

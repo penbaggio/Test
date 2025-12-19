@@ -5,6 +5,7 @@
 负责从Tushare和本地文件加载数据，支持缓存机制
 """
 
+import logging
 import os
 import pickle
 import hashlib
@@ -21,6 +22,8 @@ from .config import (
     CACHE_EXPIRE_DAYS,
     DATA_PATHS,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DataLoader:
@@ -83,7 +86,7 @@ class DataLoader:
             with open(cache_path, 'rb') as f:
                 return pickle.load(f)
         except Exception as e:
-            print(f"Warning: Failed to load cache {cache_key}: {e}")
+            logger.warning(f"Failed to load cache {cache_key}: {e}")
             return None
     
     def _save_cache(self, cache_key: str, data: Any):
@@ -96,7 +99,7 @@ class DataLoader:
             with open(cache_path, 'wb') as f:
                 pickle.dump(data, f)
         except Exception as e:
-            print(f"Warning: Failed to save cache {cache_key}: {e}")
+            logger.warning(f"Failed to save cache {cache_key}: {e}")
     
     def clear_cache(self):
         """清除所有缓存"""
@@ -104,7 +107,7 @@ class DataLoader:
             for f in os.listdir(self.cache_dir):
                 if f.endswith('.pkl'):
                     os.remove(os.path.join(self.cache_dir, f))
-            print(f"Cleared cache in {self.cache_dir}")
+            logger.info(f"Cleared cache in {self.cache_dir}")
     
     # ========================================================================
     # 本地数据加载
@@ -136,7 +139,7 @@ class DataLoader:
         if '调仓日期' in df.columns:
             df['trade_date'] = pd.to_datetime(df['调仓日期']).dt.strftime('%Y%m%d')
         
-        print(f"Loaded factor data: {len(df)} records, {df['调仓日期'].nunique()} periods")
+        logger.info(f"Loaded factor data: {len(df)} records, {df['调仓日期'].nunique()} periods")
         return df
     
     # ========================================================================
@@ -188,7 +191,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting daily data for {ts_code}: {e}")
+            logger.error(f"Error getting daily data for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_daily_basic(
@@ -225,7 +228,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting daily basic for {ts_code}: {e}")
+            logger.error(f"Error getting daily basic for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_index_daily(
@@ -262,7 +265,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting index data for {ts_code}: {e}")
+            logger.error(f"Error getting index data for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_disclosure_dates(
@@ -298,7 +301,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting disclosure dates for {ts_code}: {e}")
+            logger.error(f"Error getting disclosure dates for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_express_dates(
@@ -334,7 +337,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting express dates for {ts_code}: {e}")
+            logger.error(f"Error getting express dates for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_forecast_dates(
@@ -370,7 +373,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting forecast dates for {ts_code}: {e}")
+            logger.error(f"Error getting forecast dates for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_fina_indicator(
@@ -403,7 +406,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting fina indicator for {ts_code}: {e}")
+            logger.error(f"Error getting fina indicator for {ts_code}: {e}")
             return pd.DataFrame()
     
     def get_daily_basic_info(
@@ -431,7 +434,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting daily basic info for {trade_date}: {e}")
+            logger.error(f"Error getting daily basic info for {trade_date}: {e}")
             return pd.DataFrame()
     
     def get_trade_cal(
@@ -469,7 +472,7 @@ class DataLoader:
                 self._save_cache(cache_key, df)
             return df
         except Exception as e:
-            print(f"Error getting trade calendar: {e}")
+            logger.error(f"Error getting trade calendar: {e}")
             return pd.DataFrame()
     
     # ========================================================================
@@ -502,7 +505,7 @@ class DataLoader:
         
         for i, ts_code in enumerate(ts_codes):
             if show_progress and (i + 1) % 50 == 0:
-                print(f"Loading daily data: {i + 1}/{total}")
+                logger.info(f"Loading daily data: {i + 1}/{total}")
             
             df = self.get_daily_data(ts_code, start_date, end_date, adj)
             if df is not None and len(df) > 0:
